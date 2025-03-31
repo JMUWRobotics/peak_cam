@@ -34,6 +34,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include "peak_cam/peak_cam_node.hpp"
+#include "image_transport/image_transport.hpp"
+#include "rclcpp/utilities.hpp"
 
 namespace peak_cam
 {
@@ -43,9 +45,7 @@ PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
 {
   getParams();
 
-  m_pubImage = this->create_publisher<sensor_msgs::msg::Image>(std::string(this->get_name()) + "/" +  m_imageTopic, 1);
-  m_pubCameraInfo =
-    this->create_publisher<sensor_msgs::msg::CameraInfo>(std::string(this->get_name()) + "/camera_info", 1);
+  m_publisher = image_transport::create_camera_publisher(this, std::string(this->get_name()) + "/" + m_imageTopic);
   
   // Initialize header messages
   m_header.reset(new std_msgs::msg::Header());
@@ -91,113 +91,130 @@ PeakCamNode::~PeakCamNode()
 
 void PeakCamNode::getParams()
 {
+  declare_parameter("frame_id","");                                                                     
+  declare_parameter("image_topic","");                                                                  
+  declare_parameter("camera_info_url","");                                                              
+  declare_parameter("ExposureTime",0);                                                                  
+  declare_parameter("AcquisitionFrameRate",0);                                                          
+  declare_parameter("ImageHeight",0);                                                                   
+  declare_parameter("ImageWidth",0);                                                                    
+  declare_parameter("UseOffset",false);                                                                 
+  declare_parameter("OffsetHeight",0);                                                                  
+  declare_parameter("OffsetWidth",0);                                                                   
+  declare_parameter("Gamma",0.0);                                                                       
+  declare_parameter("selectedDevice","");                                                               
+  declare_parameter("ExposureAuto","");                                                                 
+  declare_parameter("GainAuto","");                                                                     
+  declare_parameter("PixelFormat","");                                                                  
+  declare_parameter("GainSelector","");
+
   try {
-    m_frameId = declare_parameter("frame_id").get<std::string>();
+    m_frameId = get_parameter("frame_id").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The frame_id provided was invalid");
     throw ex;
   }
   
   try {
-    m_imageTopic = declare_parameter("image_topic").get<std::string>();
+    m_imageTopic = get_parameter("image_topic").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The image_topic provided was invalid");
     throw ex;
   }
 
   try {
-    m_cameraInfoUrl = declare_parameter("camera_info_url").get<std::string>();
+    m_cameraInfoUrl = get_parameter("camera_info_url").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The camera_info_url provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.ExposureTime = declare_parameter("ExposureTime").get<int>();
+    m_peakParams.ExposureTime = get_parameter("ExposureTime").as_int();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ExposureTime provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.AcquisitionFrameRate = declare_parameter("AcquisitionFrameRate").get<int>();
+    m_peakParams.AcquisitionFrameRate = get_parameter("AcquisitionFrameRate").as_int();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The AcquisitionFrameRate provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.ImageHeight = declare_parameter("ImageHeight").get<int>();
+    m_peakParams.ImageHeight = get_parameter("ImageHeight").as_int();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ImageHeight provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.ImageWidth = declare_parameter("ImageWidth").get<int>();
+    m_peakParams.ImageWidth = get_parameter("ImageWidth").as_int();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ImageWidth provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.UseOffset = declare_parameter("UseOffset").get<bool>();
+    m_peakParams.UseOffset = get_parameter("UseOffset").as_bool();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The UseOffset provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.OffsetHeight = declare_parameter("OffsetHeight").get<int>();
+    m_peakParams.OffsetHeight = get_parameter("OffsetHeight").as_int();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The OffsetHeight provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.OffsetWidth = declare_parameter("OffsetWidth").get<int>();
+    m_peakParams.OffsetWidth = get_parameter("OffsetWidth").as_int();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The OffsetWidth provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.Gamma = declare_parameter("Gamma").get<double>();
+    m_peakParams.Gamma = get_parameter("Gamma").as_double();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The Gamma provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.selectedDevice = declare_parameter("selectedDevice").get<std::string>();
+    m_peakParams.selectedDevice = get_parameter("selectedDevice").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The selectedDevice provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.ExposureAuto = declare_parameter("ExposureAuto").get<std::string>();
+    m_peakParams.ExposureAuto = get_parameter("ExposureAuto").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ExposureAuto provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.GainAuto = declare_parameter("GainAuto").get<std::string>();
+    m_peakParams.GainAuto = get_parameter("GainAuto").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The GainAuto provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.PixelFormat = declare_parameter("PixelFormat").get<std::string>();
+    m_peakParams.PixelFormat = get_parameter("PixelFormat").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The PixelFormat provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.GainSelector = declare_parameter("GainSelector").get<std::string>();
+    m_peakParams.GainSelector = get_parameter("GainSelector").as_string();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The GainSelector provided was invalid");
     throw ex;
@@ -209,7 +226,7 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  camera_info_url: %s", m_cameraInfoUrl.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureTime: %i", m_peakParams.ExposureTime);
   RCLCPP_INFO(this->get_logger(), "  AcquisitionFrameRate: %i", m_peakParams.AcquisitionFrameRate);
-  RCLCPP_INFO(this->get_logger(), "  Gamma: %d", m_peakParams.Gamma);
+  RCLCPP_INFO(this->get_logger(), "  Gamma: %f", m_peakParams.Gamma);
   RCLCPP_INFO(this->get_logger(), "  ImageHeight: %i", m_peakParams.ImageHeight);
   RCLCPP_INFO(this->get_logger(), "  ImageWidth: %i", m_peakParams.ImageWidth);
   RCLCPP_INFO(this->get_logger(), "  OffsetHeight: %i", m_peakParams.OffsetHeight);
@@ -278,7 +295,11 @@ void PeakCamNode::openDevice()
       m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0); 
       std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
       // sets Acquisition Parameters of the camera -> see yaml
-      setDeviceParameters();
+      try {
+        setDeviceParameters();
+      } catch (const std::exception &e) {
+        RCLCPP_ERROR_STREAM(get_logger(), "couldn't set (all) parameters: " << e.what());
+      }
       // open the first data stream
       m_dataStream = m_device->DataStreams().at(0)->OpenDataStream(); 
       // get payload size
@@ -292,11 +313,15 @@ void PeakCamNode::openDevice()
       // allocate and announce image buffers and queue them
       for (uint64_t bufferCount = 0; bufferCount < bufferCountMax; ++bufferCount)
       {
-          auto buffer = m_dataStream->AllocAndAnnounceBuffer(static_cast<size_t>(payloadSize), nullptr);
-          m_dataStream->QueueBuffer(buffer);
+          sensor_msgs::msg::Image buffer;
+          buffer.data.resize(payloadSize);
+          m_dataStream->QueueBuffer(
+            m_dataStream->AnnounceBuffer(buffer.data.data(), payloadSize, nullptr, nullptr)
+          );
+          m_buffers.push_back(std::move(buffer));
       }
-      // Lock critical features to prevent them from changing during acqusition
-      // m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TLParamsLocked")->SetValue(1);
+
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TLParamsLocked")->SetValue(1);
 
       // start the data stream
       m_dataStream->StartAcquisition();
@@ -420,15 +445,12 @@ void PeakCamNode::setDeviceParameters()
     
   // Set Parameters for ROS Image
   if (m_peakParams.PixelFormat == "Mono8") {
-    m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
     m_image_encoding = sensor_msgs::image_encodings::MONO8;
     m_bytesPerPixel = 1;
   } else if (m_peakParams.PixelFormat == "RGB8") {
-    m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
     m_image_encoding = sensor_msgs::image_encodings::RGB8;
     m_bytesPerPixel = 1;
   } else if (m_peakParams.PixelFormat == "BGR8") {
-    m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
     m_image_encoding = sensor_msgs::image_encodings::BGR8;
     m_bytesPerPixel = 1;
   }
@@ -441,32 +463,27 @@ void PeakCamNode::acquisitionLoop()
       m_header->stamp = this->now();
       RCLCPP_INFO_ONCE(this->get_logger(), "[PeakCamNode]: Acquisition started");
       // get buffer from data stream and process it
-      auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
-
+      const auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
       
       auto ci = m_cameraInfoManager->getCameraInfo();
       m_cameraInfo.reset(new sensor_msgs::msg::CameraInfo(ci));
       m_cameraInfo->header = *m_header;
 
-      const auto imageBufferSize = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
-      // buffer processing start
-      auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(m_pixelFormat);
-      cv::Mat cvImage;
-      if (m_peakParams.PixelFormat == "Mono8")
-        cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC1);
-      else
-        cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC3);
-      int sizeBuffer = static_cast<int>(image.ByteCount());
-      // Device buffer is being copied into cv_bridge format
-      std::memcpy(cvImage.data, image.Data(), static_cast<size_t>(sizeBuffer));
-      // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
-      RCLCPP_INFO_ONCE(this->get_logger(), "[PeakCamNode]: cv bridge image");
-      m_cvImage.reset(new cv_bridge::CvImage());
-      m_cvImage->header = *m_header;
-      m_cvImage->encoding = m_image_encoding;
-      m_cvImage->image = cvImage;
-      m_pubImage->publish(*m_cvImage->toImageMsg());
-      m_pubCameraInfo->publish(*m_cameraInfo);
+      sensor_msgs::msg::Image &no_copy = *std::find_if(
+        m_buffers.begin(),
+        m_buffers.end(),
+        [&buffer](const sensor_msgs::msg::Image &i) {
+          return buffer->BasePtr() == i.data.data();
+        }
+      );
+      no_copy.encoding = m_image_encoding;
+      no_copy.header = *m_header;
+      no_copy.height = buffer->Height();
+      no_copy.width = buffer->Width();
+      no_copy.step = buffer->Width();
+
+      m_publisher.publish(const_cast<const sensor_msgs::msg::Image &>(no_copy), *m_cameraInfo);
+
       RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[PeakCamNode]: Publishing data");
       // queue buffer
       m_dataStream->QueueBuffer(buffer);

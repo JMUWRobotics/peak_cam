@@ -14,7 +14,6 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 find_package(ids_peak REQUIRED)
-find_package(ids_peak_ipl REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS system)
 
@@ -29,9 +28,12 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   src/peak_cam_node.cpp
 )
 
+include_directories(
+  ${ids_peak_INCLUDE_DIRS}
+)
+
 target_link_libraries(${PROJECT_NAME}
-  ${IDS_PEAK_LIBRARIES}
-  ${IDS_PEAK_IPL_LIBRARIES}
+  ids_peak
 )
 
 

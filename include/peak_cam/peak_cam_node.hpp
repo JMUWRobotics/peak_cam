@@ -36,26 +36,15 @@
 #ifndef PEAK_CAM__PEAK_CAM_NODE_HPP_
 #define PEAK_CAM__PEAK_CAM_NODE_HPP_
 
-#include <iostream>
 #include <atomic>
 
 //ROS Headers
 #include "camera_info_manager/camera_info_manager.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/float64.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "sensor_msgs/image_encodings.hpp"
-
-//OpenCV Headers
-#include "opencv2/opencv.hpp"
-#include "cv_bridge/cv_bridge.h"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
+#include "image_transport/image_transport.hpp"
 
 //IDS Camera Headers
-#include <peak_ipl/peak_ipl.hpp>
-#include <peak/converters/peak_buffer_converter_ipl.hpp>
 #include <peak/peak.hpp>
 
 //Parameters
@@ -72,8 +61,7 @@ public:
   ~PeakCamNode();
 
 private:
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_pubImage;
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr m_pubCameraInfo;
+  image_transport::CameraPublisher m_publisher;
 
   /// Camera Info Manager
   std::shared_ptr<camera_info_manager::CameraInfoManager> m_cameraInfoManager;
@@ -81,15 +69,13 @@ private:
   std::shared_ptr<peak::core::DataStream> m_dataStream;
   std::shared_ptr<peak::core::Device> m_device;
   std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
-  peak::ipl::PixelFormatName m_pixelFormat;
   
   std::string m_image_encoding;
   std_msgs::msg::Header::SharedPtr m_header;
   sensor_msgs::msg::CameraInfo::SharedPtr m_cameraInfo;
+  std::vector<sensor_msgs::msg::Image> m_buffers;
 
   rclcpp::TimerBase::SharedPtr m_acquisitionTimer;
-
-  cv_bridge::CvImagePtr m_cvImage;
 
   // Camera Parameters
   Peak_Params m_peakParams;
