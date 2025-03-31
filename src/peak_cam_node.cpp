@@ -35,7 +35,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 #include "peak_cam/peak_cam_node.hpp"
 #include "image_transport/image_transport.hpp"
-#include "rclcpp/utilities.hpp"
 
 namespace peak_cam
 {
@@ -45,7 +44,7 @@ PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
 {
   getParams();
 
-  m_publisher = image_transport::create_camera_publisher(this, std::string(this->get_name()) + "/" + m_imageTopic);
+  m_publisher = image_transport::create_camera_publisher(this, std::string(this->get_name()) + "/" + m_imageTopic, rclcpp::SensorDataQoS().get_rmw_qos_profile());
   
   // Initialize header messages
   m_header.reset(new std_msgs::msg::Header());
@@ -67,20 +66,22 @@ PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
     RCLCPP_WARN(this->get_logger(), "  %s", m_cameraInfoUrl.c_str());
     RCLCPP_WARN(this->get_logger(), "Uncalibrated Camera Info will be published...");
   }
-  
-  // set acqusition callback
-  m_acquisitionTimer =
-    this->create_wall_timer(
-      std::chrono::milliseconds(10),
-      std::bind(&PeakCamNode::acquisitionLoop, this));
-  
+
   peak::Library::Initialize();
   openDevice();
+
+  m_acquisitionThread =
+    std::make_shared<std::thread>(std::bind(&PeakCamNode::acquisitionLoop, this));
 }
 
 PeakCamNode::~PeakCamNode()
 {
   RCLCPP_INFO(this->get_logger(), "Shutting down");
+
+  m_acquisitionLoopRunning = false;
+
+  m_acquisitionThread->join();
+
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->Execute();
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->WaitUntilDone();
   // closing camera und peak library

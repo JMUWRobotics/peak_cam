@@ -75,7 +75,7 @@ private:
   sensor_msgs::msg::CameraInfo::SharedPtr m_cameraInfo;
   std::vector<sensor_msgs::msg::Image> m_buffers;
 
-  rclcpp::TimerBase::SharedPtr m_acquisitionTimer;
+  std::shared_ptr<std::thread> m_acquisitionThread;
 
   // Camera Parameters
   Peak_Params m_peakParams;
