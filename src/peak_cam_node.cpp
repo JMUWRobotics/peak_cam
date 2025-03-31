@@ -366,6 +366,24 @@ void PeakCamNode::setDeviceParameters()
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - m_peakParams.ImageHeight) / 2);
   }
 
+  //Set PixelFormat Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+
+  // Set Parameters for ROS Image
+  if (m_peakParams.PixelFormat == "Mono8") {
+    m_image_encoding = sensor_msgs::image_encodings::MONO8;
+    m_bytesPerPixel = 1;
+  } else if (m_peakParams.PixelFormat == "RGB8") {
+    m_image_encoding = sensor_msgs::image_encodings::RGB8;
+    m_bytesPerPixel = 1;
+  } else if (m_peakParams.PixelFormat == "BGR8") {
+    m_image_encoding = sensor_msgs::image_encodings::BGR8;
+    m_bytesPerPixel = 1;
+  } else {
+    RCLCPP_ERROR_STREAM(get_logger(), "unknown pixel format: " << m_peakParams.PixelFormat);
+  }
+
   //Set GainAuto Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
   RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
@@ -388,9 +406,6 @@ void PeakCamNode::setDeviceParameters()
   //Set Gamma Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
   RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
-  //Set PixelFormat Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
 
   // Set TriggerMode
   if (m_peakParams.TriggerMode == "On" ) {
@@ -441,18 +456,6 @@ void PeakCamNode::setDeviceParameters()
     }
   } else {
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode] No Trigger Specified, running continously");
-  }
-    
-  // Set Parameters for ROS Image
-  if (m_peakParams.PixelFormat == "Mono8") {
-    m_image_encoding = sensor_msgs::image_encodings::MONO8;
-    m_bytesPerPixel = 1;
-  } else if (m_peakParams.PixelFormat == "RGB8") {
-    m_image_encoding = sensor_msgs::image_encodings::RGB8;
-    m_bytesPerPixel = 1;
-  } else if (m_peakParams.PixelFormat == "BGR8") {
-    m_image_encoding = sensor_msgs::image_encodings::BGR8;
-    m_bytesPerPixel = 1;
   }
 }
 
